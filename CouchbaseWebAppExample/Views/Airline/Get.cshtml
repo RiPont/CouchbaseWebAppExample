@@ -1,0 +1,28 @@
+﻿@model CouchbaseWebAppExample.Models.Airline
+@using System.Diagnostics
+@using Newtonsoft.Json.Linq
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<h1>Airlines</h1>
+
+<h2>@Model.Name</h2>
+
+<dl>
+    <dt>Country</dt>
+    <dd>@Model.Country</dd>
+    <dt>ICAO</dt>
+    <dd>@Model.Icao</dd>
+    <dt>IATA</dt>
+    <dd>@Model.Iata</dd>
+    <dt>Callsign</dt>
+    <dd>@Model.Callsign</dd>
+</dl>
+
+<code lang="json"><pre>@JObject.FromObject(Model).ToString()</pre></code>
+
+<footer>
+    @if (Activity.Current != null)
+    {
+        <a asp-controller="TraceViewer" asp-action="Get" asp-route-activityId="@Activity.Current.Id">@Activity.Current.Id (@Activity.Current.OperationName)</a>
+    }
+</footer>

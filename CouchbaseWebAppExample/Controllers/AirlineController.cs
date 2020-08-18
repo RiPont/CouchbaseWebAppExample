@@ -17,7 +17,7 @@ namespace CouchbaseWebAppExample.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public sealed class AirlineController : ControllerBase
+    public sealed class AirlineController : Controller
     {
         private readonly IBucketProvider _bucketProvider;
         private readonly IClusterProvider _clusterProvider;
@@ -42,15 +42,27 @@ namespace CouchbaseWebAppExample.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            await Task.Delay(0);
-            return Ok(new {Hello = "World"});
+            using var span =
+                DiagListener.StartActivity(new Activity(nameof(AirlineController) + "." + nameof(Index)), null);
+            var bucket = await _travelSample.GetBucketAsync().ConfigureAwait(false);
+            var queryResults = await bucket.Cluster
+                .QueryAsync<dynamic>("SELECT icao, name FROM `travel-sample` WHERE type = 'airline' ORDER BY name")
+                .ConfigureAwait(false);
+            var results = new List<(string icao, string name)>();
+            await foreach (var qr in queryResults.Rows)
+            {
+                results.Add((qr.icao, qr.name));
+            }
+            
+            DiagListener.StopActivity(span, null);
+            return View(results);
         }
 
-        [HttpGet("{icao}/{subdoc?}", Name = "Get")]
-        public async Task<IActionResult> Get(string icao, string subdoc = null)
+        [HttpGet("{icao}")]
+        public async Task<IActionResult> Get(string icao)
         {
-            var activity = new Activity("AirlineController.Get");
-            using var span = DiagListener.StartActivity(activity, new {icao, subdoc});
+            using var span = 
+                DiagListener.StartActivity(new Activity(nameof(AirlineController) + "." + nameof(Get)), new { icao });
             Airline airline;
             var membucket = await _membucket.GetBucketAsync().ConfigureAwait(false);
             var memCollection = membucket.DefaultCollection();
@@ -59,27 +71,6 @@ namespace CouchbaseWebAppExample.Controllers
             if (int.TryParse(icao, out var id))
             {
                 var fullId = $"airline_{id}";
-                if (!string.IsNullOrWhiteSpace(subdoc))
-                {
-                    var lookupInResult = await collection.LookupInAsync(fullId, specs =>
-                        specs.Get("$document.CAS", true)
-                            .Get("$document.exptime", true)
-                             .Get(subdoc, false)
-                             .GetFull());
-                    var result0 = lookupInResult.ContentAs<dynamic>(0);
-                    var result1 = lookupInResult.ContentAs<string>(1);
-                    var wrapper = new
-                    {
-                        path = subdoc, 
-                        result0 = (object)result0,
-                        result1 = (object)result1,
-                        result2 = (object)lookupInResult.ContentAs<string>(2),
-                            airline = lookupInResult.ContentAs<Airline>(3)
-                    };
-
-                    return Content(JObject.FromObject(wrapper).ToString(), "application/json");
-                }
-
                 var getResult = await collection.GetAsync(fullId).ConfigureAwait(false);
                 airline = getResult.ContentAs<Airline>();
             }
@@ -94,7 +85,7 @@ namespace CouchbaseWebAppExample.Controllers
                         throw new DocumentNotFoundException();
                     }
 
-                    return Ok(airline);
+                    return View(airline);
                 }
                 catch (DocumentNotFoundException)
                 {
@@ -116,7 +107,7 @@ namespace CouchbaseWebAppExample.Controllers
                 var memUpsertResult = await memCollection.UpsertAsync<Airline>(airline.Icao, airline, options => options.Expiry(TimeSpan.FromSeconds(30)));
             }
 
-            return Ok(airline);
+            return View(airline);
         }
 
         // POST: api/TravelSample

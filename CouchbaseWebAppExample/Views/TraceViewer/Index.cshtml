@@ -1,8 +1,12 @@
 ﻿@using System.Diagnostics
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
-<h1>Travel Sample</h1>
+<h1>Trace Viewer</h1>
+
+<h2>Recent Traces</h2>
 
 <ul>
     <li><a asp-controller="Airline" asp-action="Index">Airlines</a></li>
 </ul>
+
+@Activity.Current.Id (@Activity.Current.OperationName)

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Extensions.DependencyInjection;
 using CouchbaseWebAppExample.Buckets;
+using CouchbaseWebAppExample.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -75,6 +76,16 @@ namespace CouchbaseWebAppExample
                 Console.WriteLine($"Couchbase.Activity::{kvp.Key} ({activity?.DisplayName})");
                 if (kvp.Key.EndsWith(".Stop") && activity != null)
                 {
+                    // Keeping track of all the activities in memory for the TraceViewerController.
+                    // This is *not* something you would do in a real app, as it uses up memory indefinitely.
+                    ActivityNode.RecordStopActivity(activity);
+                    
+                    // filter out noisy events we don't care about.
+                    if (activity.OperationName.StartsWith("get_cluster_map") || activity.OperationName.StartsWith("Poll"))
+                    {
+                        return;
+                    }
+
                     var ids = new Stack<string>();
                     var node = activity;
                     while (node != null && ids.Count < 100)

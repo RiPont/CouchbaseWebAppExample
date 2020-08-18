@@ -1,0 +1,19 @@
+﻿@model IEnumerable<(string icao, string name)>
+@using System.Diagnostics
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<h1>Airlines</h1>
+
+<ul>
+    @foreach (var airline in Model)
+    {
+        <li><a asp-controller="Airline" asp-action="Get" asp-route-icao="@airline.icao">@airline.name</a></li>
+    }
+</ul>
+
+<footer>
+    @if (Activity.Current != null)
+    {
+    <a asp-controller="TraceViewer" asp-action="Get" asp-activityId="@Activity.Current?.Id">@Activity.Current.Id (@Activity.Current.OperationName)</a>
+    }
+</footer>

@@ -1,0 +1,21 @@
+﻿@model CouchbaseWebAppExample.Models.ActivityNode
+
+    <div class="ActivityNode @Model.OperationName">
+        <div class="OperationName">@Model.DisplayName (<code>@Model.Id</code>)</div>
+        <div class="duration" style="width : @((int)Model.Duration.TotalMilliseconds)px">&nbsp;</div>
+        <dl>
+            <dt>Start</dt><dd>@Model.StartTimeUtc.ToLocalTime()</dd>
+            <dt>Duration</dt><dd>@Model.DurationUs&micro;s</dd>
+            @foreach (var tag in @Model.Tags)
+            {
+                <dt class="tagName">@tag.Key</dt>
+                <dd class="tagValue">@tag.Value</dd>
+            }
+        </dl>
+        <ul class="child-nodes">@foreach (var child in @Model.Children.Values.OrderBy(v => v.StartTimeUtc))
+        {
+            <li>
+            @await Html.PartialAsync("ActivityNode", child)
+            </li>
+        }</ul>
+    </div>
